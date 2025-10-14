@@ -1,0 +1,53 @@
+<div class="page">
+  <header class="header">
+    <div class="title-block">
+      <h1>Chatbot</h1>
+      <p class="subtitle">Real-time streaming assistant</p>
+    </div>
+
+    <div class="controls">
+      <input
+        [(ngModel)]="userId"
+        placeholder="Enter user id"
+        class="input small"
+        [disabled]="connected"
+      />
+      <button class="btn secondary" (click)="connect()" *ngIf="!connected">Connect</button>
+      <button class="btn ghost" (click)="disconnect()" *ngIf="connected">Disconnect</button>
+      <div class="status" [class.on]="connected">{{ connected ? 'Connected' : 'Disconnected' }}</div>
+    </div>
+  </header>
+
+  <main class="chat-card">
+    <div #target class="messages" id="messages">
+      <div
+        *ngFor="let msg of messages; let i = index; trackBy: trackByIndex"
+        class="bubble"
+        [ngClass]="{'user': msg.role === 'user', 'assistant': msg.role === 'assistant'}"
+      >
+        <div class="bubble-content">{{ msg.content }}</div>
+        <div class="bubble-meta">
+          <small>{{ msg.role }}</small>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="messages.length === 0">
+        No messages yet — say hello 👋
+      </div>
+    </div>
+
+    <div class="input-row">
+      <input
+        [(ngModel)]="inputText"
+        placeholder="Type your message..."
+        class="input"
+        (keydown.enter)="send(target)"
+        [disabled]="!connected || loading"
+      />
+      <button class="btn primary" (click)="send(target)" [disabled]="!connected || loading || !inputText.trim()">
+        {{ loading ? 'Waiting...' : 'Send' }}
+      </button>
+      <button class="btn danger ghost" (click)="clear()" [disabled]="!userId">Clear</button>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,2 @@
+npm i agents
+npm run cf-typegen
