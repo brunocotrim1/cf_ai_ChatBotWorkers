@@ -4,13 +4,14 @@ import { HttpClient } from '@angular/common/http';
 import { ChatMessage } from '../models/message.model';
 import { filter, takeUntil, switchMap } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs'; 
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WebsocketService {
   // Replace with your API base or move to environment.ts
-  private readonly API_BASE = 'https://workerai.bruno-cotrim1.workers.dev';
+  private readonly API_BASE = environment.apiUrl;
   private ws: WebSocket | null = null;
   private incoming$ = new Subject<any>();
   private connected$ = new BehaviorSubject<boolean>(false);

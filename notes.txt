@@ -1,2 +1,27 @@
-npm i agents
-npm run cf-typegen
+Deploy WorkerAIChatBot
+
+cd WorkerAi/
+
+npm install
+
+npm run deploy -- command the first time you run this command you will be prompted to login to cloudflare and grant wrangler authorization.
+
+This process will... (talk about build and deploying on edge cloudflare) 
+Deploy the angular frontend locally
+
+git clone https://github.com/brunocotrim1/cf_ai_ChatBotWorkers.git
+
+cd ChatAppAngular/
+
+npm install
+
+Update the ./src/app/environments/environment.ts apiURL with the URL of the deployed worker (for example in my case is https://workerai.bruno-cotrim1.workers.dev)
+
+npm run start
+
+This will run the project locally and accessible at http://localhost:4200/
+
+To experiment using the ChatBot simply insert your name to create and connect to your own personal chat and you can start chating
+
+
+
