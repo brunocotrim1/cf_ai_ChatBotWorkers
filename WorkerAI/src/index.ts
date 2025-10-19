@@ -95,70 +95,97 @@ export class UserChatHistory extends DurableObject {
 		return new Response('Not found', { status: 404 });
 	}
 
-	async webSocketMessage(websocket: WebSocket, message: ArrayBuffer | string) {
-		try {
-			const userMessage = JSON.parse(message.toString());
-			if (userMessage.type === 'prompt') {
-				// Fetch chat history
-				const history = await this.getMessages();
+async webSocketMessage(websocket: WebSocket, message: ArrayBuffer | string) {
+  try {
+    const userMessage = JSON.parse(message.toString());
 
-				// Combine history + latest user message
-				const messages = [...history, { role: 'user', content: userMessage.prompt }];
-				// Stream model response
-				const stream = await this.env.AI.run('@cf/meta/llama-3-8b-instruct', { stream: true, messages: messages });
-				const reader = stream.getReader();
-				const decoder = new TextDecoder();
-				let finalMessage = '';
+    if (userMessage.type === 'prompt') {
+      // Fetch chat history
+      const history = await this.getMessages();
 
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) {
-						websocket.send(JSON.stringify({ type: 'done' }));
-						break;
-					}
+      // Combine history + latest user message
+      const messages = [...history, { role: 'user', content: userMessage.prompt }];
 
-					const chunk = decoder.decode(value, { stream: true });
-					const lines = chunk.split('\n').filter((line) => line.trim());
+      // Stream model response
+      const stream = await this.env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        stream: true,
+        messages,
+      });
 
-					for (const line of lines) {
-						try {
-							if (line.startsWith('data: ')) {
-								const data = line.slice(6);
-								if (data === '[DONE]') {
-									websocket.send(JSON.stringify({ type: 'done' }));
-									break;
-								}
-								const parsed = JSON.parse(data);
+      let finalMessage = '';
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-								if (parsed.usage) {
-									websocket.send(JSON.stringify({ type: 'usage', usage: parsed.usage }));
-								}
+      try {
+        for await (const chunk of stream) {
+          let str = chunk;
+          if (chunk instanceof Uint8Array) {
+            str = decoder.decode(chunk, { stream: true });
+          }
 
-								if (parsed.response) {
-									websocket.send(JSON.stringify({ type: 'token', response: parsed.response }));
-									finalMessage += parsed.response;
-								} else {
-									websocket.send(JSON.stringify({ type: 'data', data }));
-								}
-							} else {
-								websocket.send(JSON.stringify({ type: 'token', token: line }));
-							}
-						} catch {
-							websocket.send(JSON.stringify({ type: 'token', token: line }));
-						}
-					}
-				}
+          buffer += str;
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
 
-				// Save assistant response to history
-				if (finalMessage) {
-					await this.addMessage('user', userMessage.prompt);
-					await this.addMessage('assistant', finalMessage);
-				}
-			}
-		} catch (err) {
-			websocket.send(JSON.stringify({ type: 'error', error: err.message, message: message.toString() }));
-		}
-	}
+            if (trimmed.startsWith('data: ')) {
+              const data = trimmed.slice(6).trim();
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+
+                if (parsed.response) {
+                  websocket.send(JSON.stringify({ type: 'token', response: parsed.response }));
+                  finalMessage += parsed.response;
+                }
+
+                if (parsed.usage) {
+                  websocket.send(JSON.stringify({ type: 'usage', usage: parsed.usage }));
+                }
+
+              } catch (e) {
+                console.error('Failed to parse chunk:', data);
+                websocket.send(JSON.stringify({ type: 'token', token: data }));
+              }
+            }
+          }
+        }
+
+        if (buffer.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(buffer.slice(6).trim());
+            if (parsed.response) {
+              websocket.send(JSON.stringify({ type: 'token', response: parsed.response }));
+              finalMessage += parsed.response;
+            }
+          } catch {}
+        }
+
+        websocket.send(JSON.stringify({ type: 'done' }));
+
+      } catch (err) {
+        websocket.send(JSON.stringify({ type: 'error', error: err.message }));
+      }
+
+      // Save assistant response to history
+      if (finalMessage) {
+        await this.addMessage('user', userMessage.prompt);
+        await this.addMessage('assistant', finalMessage);
+      }
+    }
+
+  } catch (err) {
+    websocket.send(JSON.stringify({
+      type: 'error',
+      error: err.message,
+      message: message.toString()
+    }));
+  }
+}
+
 }
 
 // ---------------- Worker Entry ----------------
