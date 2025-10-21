@@ -1,4 +1,12 @@
-import { DurableObject } from 'cloudflare:workers';
+**Model:** GPT-4o
+
+**Purpose / Context:** Generate an interactive frontend skeleton for the Worker AI backend
+
+**Prompt:** Given my Cloudflare Worker AI + Durable object code, please use its API to provide me with an Angular 19 skeleton that will serve as a base for me to work of a ChatBot Interface that makes use of this API to allow a user to input his room id and when connected he is able to see his Chat History, Chat new messages and delete the room contents. I want a modern dark styte look. 
+
+Given my Cloudflare Worker AI with Durable Objects, please create an Angular 19 skeleton that uses its API to serve as a base for me to work on a ChatBot interface. The app should allow a user to enter a room ID, and once connected, they should be able to view their chat history, send new messages, and delete the room’s contents. I would like the interface to feature a modern dark-themed design. 
+
+Here follows the Worker Code: import { DurableObject } from 'cloudflare:workers';
 
 export class UserChatHistory extends DurableObject {
 	state: DurableObjectState;
