@@ -6,7 +6,10 @@
 
 Given my Cloudflare Worker AI with Durable Objects, please create an Angular 19 skeleton that uses its API to serve as a base for me to work on a ChatBot interface. The app should allow a user to enter a room ID, and once connected, they should be able to view their chat history, send new messages, and delete the room’s contents. I would like the interface to feature a modern dark-themed design. 
 
-Here follows the Worker Code: import { DurableObject } from 'cloudflare:workers';
+Here follows the Worker Code: 
+
+```ts
+import { DurableObject } from 'cloudflare:workers';
 
 export class UserChatHistory extends DurableObject {
 	state: DurableObjectState;
